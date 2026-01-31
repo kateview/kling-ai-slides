@@ -585,6 +585,29 @@
             box-shadow: 0 8px 30px rgba(255, 107, 53, 0.3);
         }
 
+        /* 键盘提示 */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            opacity: 0.6;
+            z-index: 100;
+        }
+
+        .keyboard-hint kbd {
+            padding: 0.2rem 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
         /* 响应式 */
         @media (max-width: 768px) {
             .nav-dots {
@@ -878,6 +901,10 @@
         </div>
     </section>
 
+    <div class="keyboard-hint">
+        <kbd>↑</kbd><kbd>↓</kbd> 或 <kbd>Space</kbd> 切换幻灯片
+    </div>
+
     <script>
         class SlidePresentation {
             constructor() {
@@ -904,6 +931,43 @@
                 this.dots.forEach((dot, index) => {
                     dot.addEventListener('click', () => this.goToSlide(index));
                 });
+
+                // 键盘导航
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+
+                // 滚轮导航
+                let wheelTimeout;
+                document.addEventListener('wheel', (e) => {
+                    if (wheelTimeout) return;
+                    wheelTimeout = setTimeout(() => {
+                        wheelTimeout = null;
+                    }, 800);
+
+                    if (e.deltaY > 0) {
+                        this.nextSlide();
+                    } else {
+                        this.prevSlide();
+                    }
+                }, { passive: true });
+
+                // 触摸滑动
+                let touchStartY = 0;
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchStartY - touchEndY;
+
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) {
+                            this.nextSlide();
+                        } else {
+                            this.prevSlide();
+                        }
+                    }
+                }, { passive: true });
 
                 // 初始动画
                 setTimeout(() => this.animateSlide(0), 100);
@@ -945,6 +1009,44 @@
             goToSlide(index) {
                 if (index >= 0 && index < this.slides.length) {
                     this.slides[index].scrollIntoView({ behavior: 'auto' });
+                }
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.slides.length - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+
+            handleKeyboard(e) {
+                switch(e.key) {
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                    case ' ':
+                    case 'PageDown':
+                        e.preventDefault();
+                        this.nextSlide();
+                        break;
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                    case 'PageUp':
+                        e.preventDefault();
+                        this.prevSlide();
+                        break;
+                    case 'Home':
+                        e.preventDefault();
+                        this.goToSlide(0);
+                        break;
+                    case 'End':
+                        e.preventDefault();
+                        this.goToSlide(this.slides.length - 1);
+                        break;
                 }
             }
         }
