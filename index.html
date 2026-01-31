@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kling AI - 下一代视频生成技术</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-accent: #f0f4ff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #5a5a7a;
+            --accent-primary: #ff6b35;
+            --accent-secondary: #4f46e5;
+            --accent-gradient: linear-gradient(135deg, #ff6b35 0%, #ff8f6b 100%);
+            --glow-orange: rgba(255, 107, 53, 0.15);
+            --glow-indigo: rgba(79, 70, 229, 0.12);
+            --font-display: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+            --font-body: 'Noto Sans SC', sans-serif;
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* 背景装饰 */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .ambient-bg::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 80vw;
+            height: 80vw;
+            background: radial-gradient(circle, var(--glow-orange) 0%, transparent 70%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .ambient-bg::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, var(--glow-indigo) 0%, transparent 70%);
+            animation: float 25s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -30px) scale(1.05); }
+        }
+
+        /* 幻灯片容器 */
+        .slide {
+            min-height: 100vh;
+            padding: clamp(2rem, 6vw, 5rem);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .slide-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* 导航指示器 */
+        .nav-dots {
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(26, 26, 46, 0.2);
+            cursor: pointer;
+            transition: all 0.3s var(--ease-out-expo);
+            position: relative;
+        }
+
+        .nav-dot::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            transition: all 0.3s var(--ease-out-expo);
+        }
+
+        .nav-dot.active {
+            background: var(--accent-primary);
+            transform: scale(1.3);
+        }
+
+        .nav-dot.active::before {
+            border-color: var(--glow-orange);
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent-gradient);
+            z-index: 100;
+            transition: width 0.3s ease;
+        }
+
+        /* 动画元素 */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s var(--ease-out-expo),
+                        transform 0.8s var(--ease-out-expo);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 0.7s var(--ease-out-expo),
+                        transform 0.7s var(--ease-spring);
+        }
+
+        .reveal-scale.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-60px);
+            transition: opacity 0.8s var(--ease-out-expo),
+                        transform 0.8s var(--ease-out-expo);
+        }
+
+        .reveal-left.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .reveal-right {
+            opacity: 0;
+            transform: translateX(60px);
+            transition: opacity 0.8s var(--ease-out-expo),
+                        transform 0.8s var(--ease-out-expo);
+        }
+
+        .reveal-right.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* 交错延迟 */
+        .stagger-1 { transition-delay: 0.1s; }
+        .stagger-2 { transition-delay: 0.2s; }
+        .stagger-3 { transition-delay: 0.3s; }
+        .stagger-4 { transition-delay: 0.4s; }
+        .stagger-5 { transition-delay: 0.5s; }
+
+        /* 标题幻灯片 */
+        .title-slide {
+            text-align: center;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-accent);
+            border-radius: 100px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--accent-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .brand-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .version-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent-primary);
+            border-radius: 12px;
+            font-weight: 600;
+            color: var(--accent-primary);
+            box-shadow: 0 4px 20px var(--glow-orange);
+        }
+
+        .version-tag .highlight {
+            color: var(--text-primary);
+        }
+
+        /* 内容幻灯片通用样式 */
+        h2 {
+            font-family: var(--font-display);
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .section-label {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+        }
+
+        p {
+            font-size: clamp(1rem, 1.5vw, 1.125rem);
+            color: var(--text-secondary);
+            max-width: 65ch;
+        }
+
+        /* 时间线样式 */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+            margin-top: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            border-radius: 3px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: calc(-2rem - 6px);
+            top: 0.5rem;
+            width: 15px;
+            height: 15px;
+            background: var(--bg-secondary);
+            border: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            box-shadow: 0 0 0 4px var(--glow-orange);
+        }
+
+        .timeline-item.current::before {
+            background: var(--accent-primary);
+            animation: pulse-ring 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 4px var(--glow-orange); }
+            50% { box-shadow: 0 0 0 8px rgba(255, 107, 53, 0.05); }
+            100% { box-shadow: 0 0 0 4px var(--glow-orange); }
+        }
+
+        .timeline-date {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        /* 特性卡片网格 */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            padding: 1.75rem;
+            border-radius: 16px;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s var(--ease-out-expo);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-accent);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* 对比表格 */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+        }
+
+        .comparison-table th {
+            background: var(--bg-accent);
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent-secondary);
+        }
+
+        .comparison-table td {
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .comparison-table tr:hover td {
+            background: rgba(79, 70, 229, 0.03);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-new {
+            background: var(--glow-orange);
+            color: var(--accent-primary);
+        }
+
+        .badge-soon {
+            background: var(--glow-indigo);
+            color: var(--accent-secondary);
+        }
+
+        /* 两栏布局 */
+        .two-column {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .highlight-box {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 20px;
+            border-left: 4px solid var(--accent-primary);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+        }
+
+        .highlight-box h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* 列表样式 */
+        .feature-list {
+            list-style: none;
+            margin-top: 1.5rem;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        /* 结尾幻灯片 */
+        .final-slide {
+            text-align: center;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: var(--accent-gradient);
+            color: white;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 12px;
+            margin-top: 2rem;
+            transition: all 0.3s var(--ease-out-expo);
+            box-shadow: 0 4px 20px var(--glow-orange);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 107, 53, 0.3);
+        }
+
+        /* 键盘提示 */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            opacity: 0.6;
+            z-index: 100;
+        }
+
+        .keyboard-hint kbd {
+            padding: 0.2rem 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .nav-dots {
+                display: none;
+            }
+
+            .keyboard-hint {
+                display: none;
+            }
+
+            .timeline {
+                padding-left: 1.5rem;
+            }
+
+            .timeline-item::before {
+                left: calc(-1.5rem - 5px);
+            }
+
+            .two-column {
+                gap: 2rem;
+            }
+        }
+
+        /* 减少动画偏好 */
+        @media (prefers-reduced-motion: reduce) {
+            .reveal, .reveal-scale, .reveal-left, .reveal-right {
+                transition: opacity 0.3s ease;
+                transform: none;
+            }
+
+            .ambient-bg::before,
+            .ambient-bg::after {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-bg"></div>
+    <div class="progress-bar" id="progressBar"></div>
+
+    <nav class="nav-dots" id="navDots">
+        <div class="nav-dot active" data-slide="0"></div>
+        <div class="nav-dot" data-slide="1"></div>
+        <div class="nav-dot" data-slide="2"></div>
+        <div class="nav-dot" data-slide="3"></div>
+        <div class="nav-dot" data-slide="4"></div>
+        <div class="nav-dot" data-slide="5"></div>
+        <div class="nav-dot" data-slide="6"></div>
+    </nav>
+
+    <!-- Slide 1: 标题页 -->
+    <section class="slide title-slide">
+        <div class="slide-content">
+            <div class="brand-badge reveal">快手出品</div>
+            <h1 class="reveal stagger-1">Kling AI</h1>
+            <p class="subtitle reveal stagger-2">下一代 AI 视频生成技术<br>重新定义视觉创作的边界</p>
+            <div class="version-tag reveal stagger-3">
+                <span>最新:</span>
+                <span class="highlight">Kling O1</span>
+                <span>·</span>
+                <span>即将推出:</span>
+                <span class="highlight">Kling 3.0</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 2: 发展历程 -->
+    <section class="slide">
+        <div class="slide-content">
+            <span class="section-label reveal">EVOLUTION</span>
+            <h2 class="reveal stagger-1">Kling 发展历程</h2>
+            <p class="reveal stagger-2">从初版发布到世界首个统一多模态视频模型，Kling 在不到两年内实现了跨越式发展。</p>
+
+            <div class="timeline reveal stagger-3">
+                <div class="timeline-item">
+                    <div class="timeline-date">2024年12月</div>
+                    <div class="timeline-title">Kling 1.0 发布</div>
+                    <div class="timeline-desc">快手可灵首次发布 AI 视频生成模型，支持基础文生视频功能，标志着国产视频生成模型的崛起。</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2025年4月</div>
+                    <div class="timeline-title">Kling 2.0 发布</div>
+                    <div class="timeline-desc">视频生成能力大幅提升，支持更高分辨率、更流畅的运动表现和更精准的画面控制。</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2025年5月</div>
+                    <div class="timeline-title">Kling 2.1 发布</div>
+                    <div class="timeline-desc">引入多种质量模式，让用户可以根据需求在生成速度和视频质量之间灵活选择。</div>
+                </div>
+                <div class="timeline-item current">
+                    <div class="timeline-date">2025年6月</div>
+                    <div class="timeline-title">Kling O1 发布 🎉</div>
+                    <div class="timeline-desc">世界上第一个统一多模态视频模型！支持 3-10 秒灵活时长控制，融合视频生成与编辑能力。</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2025年12月 (预计)</div>
+                    <div class="timeline-title">Kling 3.0 Beta</div>
+                    <div class="timeline-desc">传闻将支持 4K 输出、3-5 分钟长视频生成，以及大幅改进的文本渲染能力。</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 3: Kling O1 核心特性 -->
+    <section class="slide">
+        <div class="slide-content">
+            <span class="section-label reveal">KLING O1</span>
+            <h2 class="reveal stagger-1">世界首个统一多模态视频模型</h2>
+            <p class="reveal stagger-2">Kling O1 不仅是视频生成工具，更是将生成与编辑融为一体的创作平台，让创作者拥有完整的时间控制权。</p>
+
+            <div class="feature-grid">
+                <div class="feature-card reveal-scale stagger-1">
+                    <div class="feature-icon">🎬</div>
+                    <h3>灵活时长控制</h3>
+                    <p>支持 3-10 秒视频生成，无论是短暂的视觉冲击还是持续叙事弧线，节奏完全由你掌控。</p>
+                </div>
+                <div class="feature-card reveal-scale stagger-2">
+                    <div class="feature-icon">✨</div>
+                    <h3>智能视频编辑</h3>
+                    <p>自动替代遮罩、 rotoscoping 和逐帧编辑等繁琐任务，让 AI 处理技术细节，你专注创意。</p>
+                </div>
+                <div class="feature-card reveal-scale stagger-3">
+                    <div class="feature-icon">🔄</div>
+                    <h3>统一模型架构</h3>
+                    <p>首个将生成与编辑整合到单一模型的系统，实现从创意到成品的无缝工作流。</p>
+                </div>
+                <div class="feature-card reveal-scale stagger-4">
+                    <div class="feature-icon">🚀</div>
+                    <h3>快速生成</h3>
+                    <p>升级 Fast Track 后，视频生成仅需约 3 分钟，告别长达一小时的等待队列。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 4: 功能对比 -->
+    <section class="slide">
+        <div class="slide-content">
+            <span class="section-label reveal">COMPARISON</span>
+            <h2 class="reveal stagger-1">版本功能对比</h2>
+
+            <table class="comparison-table reveal stagger-2">
+                <thead>
+                    <tr>
+                        <th>功能</th>
+                        <th>Kling 2.1</th>
+                        <th>Kling O1</th>
+                        <th>Kling 3.0 (预计)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>视频时长</td>
+                        <td>最长 10 秒</td>
+                        <td>3-10 秒灵活控制</td>
+                        <td>3-5 分钟 <span class="badge badge-soon">即将推出</span></td>
+                    </tr>
+                    <tr>
+                        <td>分辨率</td>
+                        <td>最高 1080p</td>
+                        <td>最高 1080p</td>
+                        <td>4K <span class="badge badge-soon">即将推出</span></td>
+                    </tr>
+                    <tr>
+                        <td>视频编辑</td>
+                        <td>基础功能</td>
+                        <td>AI 自动编辑 <span class="badge badge-new">全新</span></td>
+                        <td>增强编辑</td>
+                    </tr>
+                    <tr>
+                        <td>文本生成</td>
+                        <td>基础支持</td>
+                        <td>改进版</td>
+                        <td>大幅改进 <span class="badge badge-soon">即将推出</span></td>
+                    </tr>
+                    <tr>
+                        <td>多模态统一</td>
+                        <td>—</td>
+                        <td>✓ 业界首创 <span class="badge badge-new">全新</span></td>
+                        <td>✓</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Slide 5: Avatar 2.0 -->
+    <section class="slide">
+        <div class="slide-content">
+            <div class="two-column">
+                <div class="reveal-left">
+                    <span class="section-label">AVATAR 2.0</span>
+                    <h2>数字人视频生成</h2>
+                    <p>Kling Avatar 2.0 结合自然语言与视觉参考，生成长达 5 分钟的逼真人物视频，适用于虚拟主播、教育内容和营销视频。</p>
+
+                    <ul class="feature-list">
+                        <li>自然语言与视觉参考结合</li>
+                        <li>生成长达 5 分钟的连续视频</li>
+                        <li>角色一致性与表现力大幅提升</li>
+                        <li>适用于虚拟主播、教育、营销场景</li>
+                    </ul>
+                </div>
+                <div class="reveal-right">
+                    <div class="highlight-box">
+                        <h3>使用场景</h3>
+                        <div style="margin-top: 1.5rem;">
+                            <div style="margin-bottom: 1.5rem;">
+                                <div class="stat-number">5min</div>
+                                <div class="stat-label">最大视频长度</div>
+                            </div>
+                            <div>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <span class="badge badge-new">虚拟主播</span>
+                                    <span class="badge badge-new">教育内容</span>
+                                    <span class="badge badge-new">营销视频</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 6: Kling 3.0 前瞻 -->
+    <section class="slide">
+        <div class="slide-content">
+            <span class="section-label reveal">COMING SOON</span>
+            <h2 class="reveal stagger-1">Kling 3.0 前瞻</h2>
+            <p class="reveal stagger-2">预计 2025 年 12 月发布的 Kling 3.0 将带来革命性的升级，进一步巩固可灵在 AI 视频领域的领先地位。</p>
+
+            <div class="feature-grid">
+                <div class="feature-card reveal-scale stagger-1" style="border-color: var(--accent-primary);">
+                    <div class="feature-icon" style="background: var(--accent-gradient); color: white;">4K</div>
+                    <h3>4K 超高清输出</h3>
+                    <p>从 1080p 跃升至 4K 分辨率，满足专业影视制作和高端商业需求。</p>
+                </div>
+                <div class="feature-card reveal-scale stagger-2" style="border-color: var(--accent-secondary);">
+                    <div class="feature-icon" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white;">⏱️</div>
+                    <h3>长视频生成</h3>
+                    <p>支持 3-5 分钟连续视频生成，无需扩展拼接，实现真正的短片创作。</p>
+                </div>
+                <div class="feature-card reveal-scale stagger-3" style="border-color: var(--accent-primary);">
+                    <div class="feature-icon" style="background: var(--accent-gradient); color: white;">T</div>
+                    <h3>文本生成优化</h3>
+                    <p>大幅改进视频中的文字渲染能力，解决 AI 视频长期存在的文字扭曲问题。</p>
+                </div>
+            </div>
+
+            <div class="highlight-box reveal stagger-4" style="margin-top: 2rem; text-align: center;">
+                <p style="font-size: 1.1rem; color: var(--text-secondary);">
+                    <strong style="color: var(--text-primary);">预计发布时间:</strong> 2025年12月 Beta 版
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 7: 结尾页 -->
+    <section class="slide final-slide">
+        <div class="slide-content">
+            <div class="brand-badge reveal">开始创作</div>
+            <h1 class="reveal stagger-1">开启 AI 视频创作之旅</h1>
+            <p class="subtitle reveal stagger-2">体验世界领先的 AI 视频生成技术<br>让想象力成为现实</p>
+
+            <div class="reveal stagger-3">
+                <a href="https://www.klingai.com/global/" class="cta-button" target="_blank">
+                    访问 Kling AI 官网
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+            </div>
+
+            <div class="reveal stagger-4" style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid rgba(0,0,0,0.1);">
+                <p style="font-size: 0.875rem; color: var(--text-secondary);">
+                    数据来源: Kling AI 官方、Wikipedia、CyberNews、Kuaishou Technology<br>
+                    更新时间: 2025年2月
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <div class="keyboard-hint">
+        <kbd>↑</kbd><kbd>↓</kbd> 或 <kbd>Space</kbd> 切换幻灯片
+    </div>
+
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.dots = document.querySelectorAll('.nav-dot');
+                this.progressBar = document.getElementById('progressBar');
+                this.currentSlide = 0;
+                this.isScrolling = false;
+                this.scrollTimeout = null;
+
+                this.init();
+            }
+
+            init() {
+                // 初始化 Intersection Observer
+                this.observer = new IntersectionObserver(
+                    (entries) => this.handleIntersection(entries),
+                    { threshold: 0.5 }
+                );
+
+                this.slides.forEach(slide => {
+                    this.observer.observe(slide);
+                });
+
+                // 导航点点击
+                this.dots.forEach((dot, index) => {
+                    dot.addEventListener('click', () => this.goToSlide(index));
+                });
+
+                // 键盘导航
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+
+                // 滚轮导航
+                let wheelTimeout;
+                document.addEventListener('wheel', (e) => {
+                    if (wheelTimeout) return;
+                    wheelTimeout = setTimeout(() => {
+                        wheelTimeout = null;
+                    }, 800);
+
+                    if (e.deltaY > 0) {
+                        this.nextSlide();
+                    } else {
+                        this.prevSlide();
+                    }
+                }, { passive: true });
+
+                // 触摸滑动
+                let touchStartY = 0;
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchStartY - touchEndY;
+
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) {
+                            this.nextSlide();
+                        } else {
+                            this.prevSlide();
+                        }
+                    }
+                }, { passive: true });
+
+                // 初始动画
+                setTimeout(() => this.animateSlide(0), 100);
+            }
+
+            handleIntersection(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const index = Array.from(this.slides).indexOf(entry.target);
+                        this.currentSlide = index;
+                        this.updateUI();
+                        this.animateSlide(index);
+                    }
+                });
+            }
+
+            animateSlide(index) {
+                const slide = this.slides[index];
+                const reveals = slide.querySelectorAll('.reveal, .reveal-scale, .reveal-left, .reveal-right');
+
+                reveals.forEach((el, i) => {
+                    setTimeout(() => {
+                        el.classList.add('visible');
+                    }, i * 80);
+                });
+            }
+
+            updateUI() {
+                // 更新导航点
+                this.dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === this.currentSlide);
+                });
+
+                // 更新进度条
+                const progress = ((this.currentSlide + 1) / this.slides.length) * 100;
+                this.progressBar.style.width = `${progress}%`;
+            }
+
+            goToSlide(index) {
+                if (index >= 0 && index < this.slides.length) {
+                    this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.slides.length - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+
+            handleKeyboard(e) {
+                switch(e.key) {
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                    case ' ':
+                    case 'PageDown':
+                        e.preventDefault();
+                        this.nextSlide();
+                        break;
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                    case 'PageUp':
+                        e.preventDefault();
+                        this.prevSlide();
+                        break;
+                    case 'Home':
+                        e.preventDefault();
+                        this.goToSlide(0);
+                        break;
+                    case 'End':
+                        e.preventDefault();
+                        this.goToSlide(this.slides.length - 1);
+                        break;
+                }
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>
