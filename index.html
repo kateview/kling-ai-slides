@@ -303,39 +303,60 @@
         }
 
         /* 时间线样式 */
+        .timeline-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2.5rem;
+            margin-top: 2rem;
+        }
+
+        .timeline-column {
+            position: relative;
+        }
+
+        .timeline-column-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+
         .timeline {
             position: relative;
-            padding-left: 2rem;
-            margin-top: 2rem;
+            padding-left: 1.5rem;
         }
 
         .timeline::before {
             content: '';
             position: absolute;
             left: 0;
-            top: 0;
+            top: 0.5rem;
             bottom: 0;
-            width: 3px;
+            width: 2px;
             background: linear-gradient(180deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-            border-radius: 3px;
+            border-radius: 2px;
         }
 
         .timeline-item {
             position: relative;
-            padding-bottom: 2rem;
+            padding-bottom: 1.5rem;
         }
 
         .timeline-item::before {
             content: '';
             position: absolute;
-            left: calc(-2rem - 6px);
-            top: 0.5rem;
-            width: 15px;
-            height: 15px;
+            left: calc(-1.5rem - 5px);
+            top: 0.4rem;
+            width: 12px;
+            height: 12px;
             background: var(--bg-secondary);
-            border: 3px solid var(--accent-primary);
+            border: 2px solid var(--accent-primary);
             border-radius: 50%;
-            box-shadow: 0 0 0 4px var(--glow-orange);
+            box-shadow: 0 0 0 3px var(--glow-orange);
         }
 
         .timeline-item.current::before {
@@ -344,28 +365,36 @@
         }
 
         @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 4px var(--glow-orange); }
-            50% { box-shadow: 0 0 0 8px rgba(255, 107, 53, 0.05); }
-            100% { box-shadow: 0 0 0 4px var(--glow-orange); }
+            0% { box-shadow: 0 0 0 3px var(--glow-orange); }
+            50% { box-shadow: 0 0 0 6px rgba(255, 107, 53, 0.05); }
+            100% { box-shadow: 0 0 0 3px var(--glow-orange); }
         }
 
         .timeline-date {
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             font-weight: 600;
             color: var(--accent-primary);
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.15rem;
         }
 
         .timeline-title {
-            font-size: 1.25rem;
+            font-size: 1.05rem;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.35rem;
         }
 
         .timeline-desc {
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .timeline-container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
         }
 
         /* 特性卡片网格 */
@@ -655,31 +684,41 @@
             <h2 class="reveal stagger-1">Kling 发展历程</h2>
             <p class="reveal stagger-2">从初版发布到世界首个统一多模态视频模型，Kling 在不到两年内实现了跨越式发展。</p>
 
-            <div class="timeline reveal stagger-3">
-                <div class="timeline-item">
-                    <div class="timeline-date">2024年12月</div>
-                    <div class="timeline-title">Kling 1.0 发布</div>
-                    <div class="timeline-desc">快手可灵首次发布 AI 视频生成模型，支持基础文生视频功能，标志着国产视频生成模型的崛起。</div>
+            <div class="timeline-container reveal stagger-3">
+                <div class="timeline-column">
+                    <div class="timeline-column-title">历史版本</div>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-date">2024年12月</div>
+                            <div class="timeline-title">Kling 1.0</div>
+                            <div class="timeline-desc">快手可灵首次发布 AI 视频生成模型，支持基础文生视频功能。</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-date">2025年4月</div>
+                            <div class="timeline-title">Kling 2.0</div>
+                            <div class="timeline-desc">视频生成能力大幅提升，支持更高分辨率、更流畅的运动表现。</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-date">2025年5月</div>
+                            <div class="timeline-title">Kling 2.1</div>
+                            <div class="timeline-desc">引入多种质量模式，在速度和视频质量间灵活选择。</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="timeline-item">
-                    <div class="timeline-date">2025年4月</div>
-                    <div class="timeline-title">Kling 2.0 发布</div>
-                    <div class="timeline-desc">视频生成能力大幅提升，支持更高分辨率、更流畅的运动表现和更精准的画面控制。</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-date">2025年5月</div>
-                    <div class="timeline-title">Kling 2.1 发布</div>
-                    <div class="timeline-desc">引入多种质量模式，让用户可以根据需求在生成速度和视频质量之间灵活选择。</div>
-                </div>
-                <div class="timeline-item current">
-                    <div class="timeline-date">2025年6月</div>
-                    <div class="timeline-title">Kling O1 发布 🎉</div>
-                    <div class="timeline-desc">世界上第一个统一多模态视频模型！支持 3-10 秒灵活时长控制，融合视频生成与编辑能力。</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-date">2025年12月 (预计)</div>
-                    <div class="timeline-title">Kling 3.0 Beta</div>
-                    <div class="timeline-desc">传闻将支持 4K 输出、3-5 分钟长视频生成，以及大幅改进的文本渲染能力。</div>
+                <div class="timeline-column">
+                    <div class="timeline-column-title">最新 & 即将推出</div>
+                    <div class="timeline">
+                        <div class="timeline-item current">
+                            <div class="timeline-date">2025年6月 🎉</div>
+                            <div class="timeline-title">Kling O1</div>
+                            <div class="timeline-desc">世界首个统一多模态视频模型！支持 3-10 秒灵活时长控制，融合生成与编辑。</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-date">2025年12月</div>
+                            <div class="timeline-title">Kling 3.0 Beta</div>
+                            <div class="timeline-desc">4K 输出、3-5 分钟长视频、大幅改进的文本渲染能力。</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
